@@ -1,5 +1,6 @@
 import os
 import shutil
+from pathlib import Path
 
 from blocks import markdown_to_html_node
 
@@ -59,13 +60,20 @@ def generate_page(from_path, template_path, dest_path) -> None:
         df.write(temp)
 
 
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path) -> None:
+
+    src: Path = Path(dir_path_content)
+    dest: Path = Path(dest_dir_path)
+
+    for item in src.rglob("*.md"):
+        generate_page(
+            item, template_path, dest / item.relative_to(src).with_suffix(".html")
+        )
+
+
 def main() -> None:
     copy_folder(src="static", dst="public")
-    generate_page(
-        from_path="content/index.md",
-        template_path="template.html",
-        dest_path="public/index.html",
-    )
+    generate_pages_recursive("content", "template.html", "public")
 
 
 if __name__ == "__main__":
