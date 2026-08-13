@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 from pathlib import Path
 
 from blocks import markdown_to_html_node
@@ -40,7 +41,7 @@ def extract_title(markdown: str) -> str:
     return lines[0].lstrip("# ")
 
 
-def generate_page(from_path, template_path, dest_path) -> None:
+def generate_page(from_path, template_path, dest_path, basepath) -> None:
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
 
     os.makedirs(name=os.path.dirname(dest_path), exist_ok=True)
@@ -53,27 +54,38 @@ def generate_page(from_path, template_path, dest_path) -> None:
 
     content: str = markdown_to_html_node(markdown).to_html()
     title: str = extract_title(markdown)
-    temp = temp.replace("{{ Title }}", title)
-    temp = temp.replace("{{ Content }}", content)
+    temp = temp.replace("{{ Title }}", title).replace("{{ Content }}", content)
+    temp = temp.replace('href="/', f'href="{basepath}').replace(
+        'src="/', f'src="{basepath}'
+    )
 
     with open(file=dest_path, mode="w") as df:
         df.write(temp)
 
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path) -> None:
+def generate_pages_recursive(
+    dir_path_content, template_path, dest_dir_path, basepath
+) -> None:
 
     src: Path = Path(dir_path_content)
     dest: Path = Path(dest_dir_path)
 
     for item in src.rglob("*.md"):
         generate_page(
-            item, template_path, dest / item.relative_to(src).with_suffix(".html")
+            item,
+            template_path,
+            dest
+            / item.relative_to(src).with_suffix(
+                ".html",
+            ),
+            basepath,
         )
 
 
 def main() -> None:
-    copy_folder(src="static", dst="public")
-    generate_pages_recursive("content", "template.html", "public")
+    basepath: str = sys.argv[1] if len(sys.argv) > 1 else "/"
+    copy_folder(src="static", dst="docs")
+    generate_pages_recursive("content", "template.html", "docs", basepath)
 
 
 if __name__ == "__main__":
