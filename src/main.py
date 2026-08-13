@@ -1,6 +1,8 @@
 import os
 import shutil
 
+from blocks import markdown_to_html_node
+
 
 def copy_folder(src: str, dst: str) -> None:
     work_dir: str = os.getcwd()
@@ -27,8 +29,43 @@ def copy_folder(src: str, dst: str) -> None:
             copy_folder(src_file, dest_file)
 
 
+def extract_title(markdown: str) -> str:
+    lines: list[str] = list(
+        filter(lambda line: line.startswith("# "), markdown.split("\n"))
+    )
+
+    if len(lines) == 0:
+        raise ValueError(f"Invalid format: {markdown}")
+    return lines[0].lstrip("# ")
+
+
+def generate_page(from_path, template_path, dest_path) -> None:
+    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+
+    os.makedirs(name=os.path.dirname(dest_path), exist_ok=True)
+
+    with open(file=from_path, mode="r") as sf:
+        markdown: str = sf.read()
+
+    with open(file=template_path, mode="r") as tf:
+        temp: str = tf.read()
+
+    content: str = markdown_to_html_node(markdown).to_html()
+    title: str = extract_title(markdown)
+    temp = temp.replace("{{ Title }}", title)
+    temp = temp.replace("{{ Content }}", content)
+
+    with open(file=dest_path, mode="w") as df:
+        df.write(temp)
+
+
 def main() -> None:
     copy_folder(src="static", dst="public")
+    generate_page(
+        from_path="content/index.md",
+        template_path="template.html",
+        dest_path="public/index.html",
+    )
 
 
 if __name__ == "__main__":
